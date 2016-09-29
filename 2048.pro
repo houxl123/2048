@@ -21,3 +21,6 @@ HEADERS  += mainwindow.h \
     cell.h
 
 RC_ICONS = 2048.ico
+
+RESOURCES += \
+    2048.qrc
