@@ -5,10 +5,12 @@
 #include "cell.h"
 #include <QTime>
 #include <QPropertyAnimation>
+#include <QParallelAnimationGroup>
 #include <QPainter>
 
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
+    , _bRelease(false)
 {
     setFixedSize(CELLNUM*CELLSIZE, CELLNUM*CELLSIZE);
 
@@ -35,19 +37,36 @@ void MainWindow::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.fillRect(rect(), QColor(188,172,161));
+
+    QPen pen;
+    pen.setBrush(QColor(255,255,255,0));
+    p.setPen(pen);
+    p.setBrush(QColor(204,192,178));
+    for (int i=0; i<CELLNUM; i++)
+    {
+        for (int j=0; j<CELLNUM; j++)
+        {
+            p.drawRoundedRect(QRect(2+i*CELLSIZE,2+j*CELLSIZE, CELLSIZE-4, CELLSIZE-4), 5,5);
+        }
+    }
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *e)
 {
-    QList<QList<Cell *> > cellTemp;
+    if (_bRelease) return;
+
+    QList<QList<int> > valueList;
+    QList<QList<QPoint> >pointList;
     if (e->key() == Qt::Key_Up)
     {
         for(int i=0; i<CELLNUM; i++)
         {
-            cellTemp.append(QList<Cell*>());
+            valueList.append(QList<int>());
+            pointList.append(QList<QPoint>());
             for (int j=0; j<CELLNUM; j++)
             {
-                cellTemp[i].append(_cellList[j][i]);
+                valueList[i].append(_cellList[j][i]->getNum());
+                pointList[i].append(_cellList[j][i]->pos());
             }
         }
     }
@@ -55,10 +74,12 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e)
     {
         for(int i=0; i<CELLNUM; i++)
         {
-            cellTemp.append(QList<Cell*>());
-            for (int j=CELLNUM-1; j>=0; j--)
+            valueList.append(QList<int>());
+            pointList.append(QList<QPoint>());
+            for (int j=0; j<CELLNUM; j++)
             {
-                cellTemp[i].append(_cellList[j][i]);
+                valueList[i].append(_cellList[3-j][i]->getNum());
+                pointList[i].append(_cellList[3-j][i]->pos());
             }
         }
     }
@@ -66,10 +87,12 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e)
     {
         for(int i=0; i<CELLNUM; i++)
         {
-            cellTemp.append(QList<Cell*>());
+            valueList.append(QList<int>());
+            pointList.append(QList<QPoint>());
             for (int j=0; j<CELLNUM; j++)
             {
-                cellTemp[i].append(_cellList[i][j]);
+                valueList[i].append(_cellList[i][j]->getNum());
+                pointList[i].append(_cellList[i][j]->pos());
             }
         }
     }
@@ -77,190 +100,114 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e)
     {
         for(int i=0; i<CELLNUM; i++)
         {
-            cellTemp.append(QList<Cell*>());
-            for (int j=CELLNUM-1; j>=0; j--)
+            valueList.append(QList<int>());
+            pointList.append(QList<QPoint>());
+            for (int j=0; j<CELLNUM; j++)
             {
-                cellTemp[i].append(_cellList[i][j]);
+                valueList[i].append(_cellList[i][3-j]->getNum());
+                pointList[i].append(_cellList[i][3-j]->pos());
             }
         }
     }
+    else return;
 
-    if (cellTemp.count() >0 )moveOper(cellTemp);
-//    if (bMove)
-//    {
-//        QList<QPair<int,int> > pairList1;
-//        QList<QPair<int,int> > pairList2;
-//        QList<QPair<int,int> > pairList3;
-//        for(int i=CELLNUM-1; i>=0; i--)
-//        {
-//            for(int j=CELLNUM-1; j>=0; j--)
-//            {
-//                if(_cellList[j][i]->getNum() == 0)
-//                {
-//                    if((i==0 && j==0) || (i==CELLNUM-1 && j==0) || (i==0 && j==CELLNUM-1) || (i==CELLNUM-1 && j==CELLNUM-1))
-//                    {
-//                        pairList1.append(QPair<int,int>(j,i));
-//                    }
-//                    else if (i==0 || i==CELLNUM-1 || j==0 || j==CELLNUM-1)
-//                    {
-//                        pairList2.append(QPair<int,int>(j,i));
-//                    }
-//                    else
-//                    {
-//                        pairList3.append(QPair<int,int>(j,i));
-//                    }
-//                }
-//            }
-//        }
-
-//        QTime time= QTime::currentTime();
-//        qsrand(time.msec()+time.second()*1000);
-//        if(pairList1.count() == 0 && pairList2.count() == 0 && pairList3.count() == 0)
-//        {
-
-//        }
-//        else if(pairList1.count() != 0)
-//        {
-//            int nTemp = qrand()%pairList1.count();
-//            _cellList[pairList1[nTemp].first][pairList1[nTemp].second]->setNum(2);
-//        }
-//        else if(pairList2.count() != 0)
-//        {
-//            int nTemp = qrand()%pairList2.count();
-//            _cellList[pairList2[nTemp].first][pairList2[nTemp].second]->setNum(2);
-//        }
-//        else if(pairList3.count() != 0)
-//        {
-//            int nTemp = qrand()%pairList3.count();
-//            _cellList[pairList3[nTemp].first][pairList3[nTemp].second]->setNum(2);
-//        }
-//    }
-}
-
-void MainWindow::movieOper(const moveSut &sut)
-{
-    Cell *pTemp = new Cell(this, sut.value1);
-    pTemp->show();
-
-    QPropertyAnimation *pAnimat = new QPropertyAnimation(pTemp, "pos", pTemp);
-    pAnimat->setDuration(200);
-    pAnimat->setStartValue(QPoint(sut.x1, sut.y1));
-    pAnimat->setEndValue(QPoint(sut.x2, sut.y2));
-    _cellList[sut.y1/CELLSIZE][sut.x1/CELLSIZE]->setNum(0);
-    _cellList[sut.y2/CELLSIZE][sut.x2/CELLSIZE]->setNum(sut.value2);
-    connect(pAnimat, &QPropertyAnimation::finished, this, [=]()
+    QParallelAnimationGroup *group = new QParallelAnimationGroup;
+    for (int i=0; i<valueList.count(); i++)
     {
-        _cellList[sut.y2/CELLSIZE][sut.x2/CELLSIZE]->setNum(sut.value2+sut.value1);
-        pTemp->deleteLater();
-    });
-
-    pAnimat->start();
-}
-
-void MainWindow::moveOper(QList<QList<Cell *> > cellList)
-{
-    int num[CELLNUM][CELLNUM];
-    QList<QList<int> > numList;
-    for (int i=0; i<CELLNUM; i++)
-    {
-        numList<<QList<int>();
-        for (int j =0; j<CELLNUM; j++)
+        for (int j=0; j<valueList[i].count()-1; )
         {
-            num[i][j] = cellList[i][j]->getNum();
-            numList[i]<<0;
-        }
-    }
-
-    bool bMove = false;
-    for (int i=0; i<CELLNUM; i++)
-    {
-        for(int j=1; j<CELLNUM; j++)
-        {
-            for (int k=j-1; k>=0; k--)
+            if (valueList[i][j] == 0)
             {
-                if(num[i][j] == 0)break;
-                if(num[i][k] == 0)
+                int tmp = -1;
+                for (int k=j+1; k<valueList[i].count(); k++)
                 {
-                    if(k == 0 || (k>=1 && num[i][k-1] != 0 && num[i][k-1] != num[i][j]))
+                    if (valueList[i][k] != 0)
                     {
-                        bMove = true;
-                        num[i][k] = num[i][j];
-                        num[i][j] = 0;
-                        movieOper(moveSut(cellList[i][j]->x(),cellList[i][j]->y(),cellList[i][k]->x(),cellList[i][k]->y(),num[i][k],0));
+                        tmp = k;
                         break;
                     }
-                    else continue;
                 }
-                if (num[i][j] != num[i][k])break;
-                bMove = true;
-                num[i][j] = 0;
-                num[i][k] = 2*num[i][k];
-                movieOper(moveSut(cellList[i][j]->x(),cellList[i][j]->y(),cellList[i][k]->x(),cellList[i][k]->y(),num[i][k]/2,num[i][k]/2));
-                break;
-            }
-        }
-    }
 
-    for (int i=0; i<CELLNUM; i++)
-    {
-        for (int j=0; j<CELLNUM; j++)
-        {
-            numList[cellList[i][j]->y()/CELLSIZE][cellList[i][j]->x()/CELLSIZE] = num[i][j];
-        }
-    }
-
-    if(bMove) nextPoint(numList);
-}
-
-void MainWindow::nextPoint(QList<QList<int> > numList)
-{
-    {
-//        QList<QPair<int,int> > pairList1;
-//        QList<QPair<int,int> > pairList2;
-        QList<QPair<int,int> > pairList3;
-        for(int i=CELLNUM-1; i>=0; i--)
-        {
-            for(int j=CELLNUM-1; j>=0; j--)
-            {
-                if(numList[i][j] == 0)
+                if (tmp > 0)
                 {
-//                    if((i==0 && j==0) || (i==CELLNUM-1 && j==0) || (i==0 && j==CELLNUM-1) || (i==CELLNUM-1 && j==CELLNUM-1))
-//                    {
-//                        pairList1.append(QPair<int,int>(i,j));
-//                    }
-//                    else if (i==0 || i==CELLNUM-1 || j==0 || j==CELLNUM-1)
-//                    {
-//                        pairList2.append(QPair<int,int>(i,j));
-//                    }
-//                    else
-                    {
-                        pairList3.append(QPair<int,int>(i,j));
-                    }
+                    valueList[i][j] = valueList[i][tmp];
+                    valueList[i][tmp] = 0;
+                    Cell *pTemp = _cellList[pointList[i][tmp].y()/CELLSIZE][pointList[i][tmp].x()/CELLSIZE];
+                    pTemp->raise();
+                    QPropertyAnimation *anim = new QPropertyAnimation(pTemp, "pos");
+                    anim->setStartValue(pointList[i][tmp]);
+                    anim->setEndValue(pointList[i][j]);
+                    anim->setDuration(200);
+                    group->addAnimation(anim);
                 }
+                else j++;
             }
-        }
+            else
+            {
+                int tmp = -1;
+                for (int k=j+1; k<valueList[i].count(); k++)
+                {
+                    if (valueList[i][k] == valueList[i][j])
+                    {
+                        tmp = k;
+                        break;
+                    }
+                    else if (valueList[i][k] != 0)break;
+                }
 
-        QTime time= QTime::currentTime();
-        qsrand(time.msec()+time.second()*1000);
-        if(/*pairList1.count() == 0 && pairList2.count() == 0 && */pairList3.count() == 0)
-        {
+                if (tmp > 0)
+                {
+                    valueList[i][j] = 2*valueList[i][tmp];
+                    valueList[i][tmp] = 0;
 
-        }
-//        else if(pairList1.count() != 0)
-//        {
-//            int nTemp = qrand()%pairList1.count();
-//            _cellList[pairList1[nTemp].first][pairList1[nTemp].second]->setNum(2);
-//        }
-//        else if(pairList2.count() != 0)
-//        {
-//            int nTemp = qrand()%pairList2.count();
-//            _cellList[pairList2[nTemp].first][pairList2[nTemp].second]->setNum(2);
-//        }
-        else if(pairList3.count() != 0)
-        {
-            int nTemp = qrand()%pairList3.count();
-            _cellList[pairList3[nTemp].first][pairList3[nTemp].second]->setNum(2);
+                    Cell *pTemp = _cellList[pointList[i][tmp].y()/CELLSIZE][pointList[i][tmp].x()/CELLSIZE];
+                    pTemp->raise();
+                    QPropertyAnimation *anim = new QPropertyAnimation(pTemp, "pos");
+                    anim->setStartValue(pointList[i][tmp]);
+                    anim->setEndValue(pointList[i][j]);
+                    anim->setDuration(200);
+                    group->addAnimation(anim);
+                }
+                j++;
+            }
         }
     }
 
+    if (group->animationCount() <= 0 )return;
+    connect(group, &QAnimationGroup::finished, this, [=]()
+    {
+        for (int i=0; i<group->animationCount(); i++)
+        {
+            QAbstractAnimation *pAnim = group->animationAt(i);
+            pAnim->deleteLater();
+        }
+        group->clear();
+        group->deleteLater();
+
+        for(int i=0; i<CELLNUM; i++)
+        {
+            for(int j=0; j<CELLNUM; j++)
+            {
+                _cellList[i][j]->move(j*CELLSIZE, i*CELLSIZE);
+                _cellList[pointList[i][j].y()/CELLSIZE][pointList[i][j].x()/CELLSIZE]->setNum(valueList[i][j]);
+            }
+        }
+
+        QList<QPair<int,int> > pairList;
+        for(int i=0; i<_cellList.count(); i++)
+        {
+            for(int j=0; j<_cellList[i].count(); j++)
+            {
+                if (_cellList[i][j]->getNum() == 0)
+                    pairList.append(QPair<int,int>(i,j));
+            }
+        }
+
+        qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
+        int num = qrand()%pairList.count();
+        _cellList[pairList[num].first][pairList[num].second]->setNum(2);
+        _bRelease = false;
+    });
+    _bRelease = true;
+    group->start();
 }
